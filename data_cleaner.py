@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 
 remove_outliers = True # TOGGLE TO FALSE IF CAPPING OUTLIERS INSTEAD
-dataset = "" # INSERT FILE NAME HERE
+dataset = "financial_plan.csv" # INSERT FILE NAME HERE
 original_dataset = pd.read_csv(dataset) # Provide a way to access original dataset for comparability
+new_file = "financial_plan_clean.csv"
 initial_rows = ""
 new_rows = ""
 
@@ -78,7 +79,7 @@ def handle_missing_values(
 # Process categorical or object columns
     else:
       if cat_strategy == "placeholder": # UPDATE placeholder AS NEEDED
-        df[col] = df[col].fillna("Unknown") # UPDATE Unknown AS NEEDED
+        df[col] = df[col].fillna("unknown") # UPDATE Unknown AS NEEDED
       elif cat_strategy == "mode":
         df[col] = df[col].fillna(df[col].mode()[0])
       elif cat_strategy == "drop":
