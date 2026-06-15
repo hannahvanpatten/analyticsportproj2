@@ -108,31 +108,31 @@ def clean_text_columns(df: pd.DataFrame) -> pd.DataFrame: # Standardize text str
   return df
 
 
-def handle_outliers_iqr(df: pd.DataFrame, factor=1.5) -> pd.DataFrame: # Cap numerical outliers using the interquartile range (IQR) method
-  initial_rows = len(df)
-  for col in df.select_dtypes(include=[np.number]).columns:
-    q1 = df[col].quantile(0.25)
-    q3 = df[col].quantile(0.75)
-    iqr = q3 - q1
-    lower_bound = q1 - factor * iqr
-    upper_bound = q3 + factor * iqr
-    if remove_outliers:
-      df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
-    else:
-      values_capped = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
-      df[col] = np.clip(df[col], lower_bound, upper_bound) # Cap values outside the boundaries
-  new_rows = len(df)
-  rows_dropped = initial_rows - new_rows
-  print("Outliers Cleanup")
-  print("----------------")
-  print(df.head())
-  if remove_outliers:
-    print(f"Dropped {rows_dropped} row(s) with outliers.")
-  else:
-    print(f"Capped {values_capped} value(s) outside the IQR boundaries.")
-  print("")
-  print("")
-  return df
+# def handle_outliers_iqr(df: pd.DataFrame, factor=1.5) -> pd.DataFrame: # Cap numerical outliers using the interquartile range (IQR) method
+  # initial_rows = len(df)
+  # for col in df.select_dtypes(include=[np.number]).columns:
+    # q1 = df[col].quantile(0.25)
+    # q3 = df[col].quantile(0.75)
+    # iqr = q3 - q1
+    # lower_bound = q1 - factor * iqr
+    # upper_bound = q3 + factor * iqr
+    # if remove_outliers:
+      # df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+    # else:
+      # values_capped = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
+      # df[col] = np.clip(df[col], lower_bound, upper_bound) # Cap values outside the boundaries
+  # new_rows = len(df)
+  # rows_dropped = initial_rows - new_rows
+  # print("Outliers Cleanup")
+  # print("----------------")
+  # print(df.head())
+  # if remove_outliers:
+    # print(f"Dropped {rows_dropped} row(s) with outliers.")
+  # else:
+    # print(f"Capped {values_capped} value(s) outside the IQR boundaries.")
+  # print("")
+  # print("")
+  # return df
 
 
 def save_clean_file(output_path: str): # Save cleaned file
