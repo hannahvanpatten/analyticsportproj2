@@ -129,7 +129,7 @@ def handle_outliers_iqr(df: pd.DataFrame, factor=1.5) -> pd.DataFrame: # Cap num
   if remove_outliers:
     print(f"Dropped {rows_dropped} row(s) with outliers.")
   else:
-    print(f"Capped {total_values_capped} value(s) outside the IQR boundaries.")
+    print(f"Capped {values_capped} value(s) outside the IQR boundaries.")
   print("")
   print("")
   return df
