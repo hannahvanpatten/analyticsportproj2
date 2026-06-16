@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 
 remove_outliers = True # TOGGLE TO FALSE IF CAPPING OUTLIERS INSTEAD
-dataset = "financial_plan.csv" # INSERT FILE NAME HERE
+dataset = "products_parameters.csv" # INSERT FILE NAME HERE
 original_dataset = pd.read_csv(dataset) # Provide a way to access original dataset for comparability
-new_file = "financial_plan_clean.csv"
+new_file = "products_parameters_clean.csv"
 initial_rows = ""
 new_rows = ""
 
