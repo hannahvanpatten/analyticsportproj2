@@ -147,7 +147,7 @@ def clean_pipeline(file_path: str, output_path: str) -> pd.DataFrame:
   df = handle_duplicates(df)
   df = handle_missing_values(df)
   df = clean_text_columns(df)
-  df = handle_outliers_iqr(df)
+  # df = handle_outliers_iqr(df)
   df = save_clean_file(new_file)
 
 
