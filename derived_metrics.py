@@ -99,4 +99,4 @@ def add_derived_metrics(df: pd.DataFrame) -> pd.DataFrame: # UPDATE COLUMN NAMES
   return df
 
 dataset = add_derived_metrics(dataset)
-dataset = dataset.to_csv(new_file)
+dataset = dataset.to_csv(new_file, index=False)
