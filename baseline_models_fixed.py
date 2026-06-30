@@ -55,6 +55,17 @@ def seasonal_naive_forecast(df, group_col, date_col, target_col, horizon, period
         preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': y_hat}))
     return pd.concat(preds, ignore_index=True)
 
+def moving_average_forecast(df, group_col, date_col, target_col, horizon, window=3): # 3-month average
+    preds = []
+    df = df.set_index(date_col)
+    for product, g in df.groupby(group_col):
+        g = g.sort_index()
+        last_window_mean = g[target_col].tail(window).mean()
+        last_date = g.index.max()
+        future_dates = pd.date_range(start=last_date + pd.offsets.MonthBegin(1), periods=horizon, freq='MS')
+        preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': [last_window_mean]*horizon}))
+    return pd.concat(preds, ignore_index=True)
+
 
 # ------------Function Calls-------------
 
