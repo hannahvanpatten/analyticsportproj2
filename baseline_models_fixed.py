@@ -39,6 +39,22 @@ def naive_forecast(df, group_col, date_col, target_col, horizon):
         }))
     return pd.concat(preds, ignore_index=True)
 
+def seasonal_naive_forecast(df, group_col, date_col, target_col, horizon, period=12):
+    preds = []
+    df = df.set_index(date_col)
+    for product, g in df.groupby(group_col):
+        g = g.sort_index()
+        last_date = g.index.max()
+        future_dates = pd.date_range(start=last_date + pd.offsets.MonthBegin(1), periods=horizon, freq='MS')
+        y_hat = [] # predicted sales
+        for fd in future_dates:
+            # same month last season: fd - period months
+            ref_date = (fd - pd.DateOffset(months=period)).to_period("M").to_timestamp()
+            val = g[target_col].get(ref_date, np.nan)
+            y_hat.append(val)
+        preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': y_hat}))
+    return pd.concat(preds, ignore_index=True)
+
 
 # ------------Function Calls-------------
 
