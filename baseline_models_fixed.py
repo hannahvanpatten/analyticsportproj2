@@ -21,6 +21,23 @@ def prepare_monthly_df(df, date_col="date", freq="MS"):
     # make sure index is start-of-month, and sorted
     df[date_col] = df[date_col].dt.to_period("M").dt.to_timestamp()
     return df.sort_values([ "productid", date_col ])
+df = prepare_monthly_df(df, date_col="date")
+
+def naive_forecast(df, group_col, date_col, target_col, horizon):
+    # For each product, forecast horizon steps as the last observed value
+    preds = []
+    for product, g in df.groupby(group_col):
+        last_val = g[target_col].ffill().iloc[-1]
+        # create h forecast rows for the next h months
+        last_date = g[date_col].max()
+        future_idx = pd.date_range(start=last_date + pd.offsets.MonthBegin(1), periods=horizon, freq='MS')
+        preds.append(pd.DataFrame({
+            group_col: product,
+            date_col: future_idx,
+            'horizon': list(range(1, horizon+1)),
+            'predicted_sales': [last_val]*horizon
+        }))
+    return pd.concat(preds, ignore_index=True)
 
 
 # ------------Function Calls-------------
