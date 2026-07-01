@@ -66,6 +66,41 @@ def moving_average_forecast(df, group_col, date_col, target_col, horizon, window
         preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': [last_window_mean]*horizon}))
     return pd.concat(preds, ignore_index=True)
 
+def fixed_train_test_forecast(df, train_start_date, train_end_date, test_start_date, test_end_date, group_col, date_col, target_col, forecast_fn, horizon=1, **forecast_kwargs):
+    df = prepare_monthly_df(df, date_col)
+    
+    # Partition data
+    train_df = df[(df[date_col] >= train_start_date) & (df[date_col] <= train_end_date)]
+    test_df = df[(df[date_col] >= test_start_date) & (df[date_col] <= test_end_date)]
+    
+    # Generate forecasts from training data
+    preds = forecast_fn(train_df, group_col, date_col, target_col, horizon, **forecast_kwargs)
+    
+    # Match predictions to actuals
+    results = []
+    for _, row in preds.iterrows():
+        prod = row[group_col]
+        fd = row[date_col]
+        actual_row = test_df[(test_df[group_col] == prod) & (test_df[date_col] == fd)]
+        if not actual_row.empty:
+            actual = actual_row[target_col].values[0]
+            results.append({
+                group_col: prod,
+                'date': fd,
+                'horizon': row['horizon'],
+                'predicted_sales': row['predicted_sales'],
+                'actual_sales': actual
+            })
+    
+    res_df = pd.DataFrame(results)
+    # MAPE by forecast horizon
+    horizon_metrics = (res_df.groupby('horizon').apply(lambda g: mape(g['actual_sales'], g['predicted_sales'])))
+    # MAPE by product
+    product_metrics = (res_df.groupby(group_col).apply(lambda g: mape(g['actual_sales'], g['predicted_sales'])))
+    # Overall MAPE
+    overall_mape = mape(res_df['actual_sales'],res_df['predicted_sales'])
+    return res_df, horizon_metrics, product_metrics, overall_mape
+
 
 # ------------Function Calls-------------
 
