@@ -103,6 +103,61 @@ def fixed_train_test_forecast(df, train_start_date, train_end_date, test_start_d
 
 
 # ------------Function Calls-------------
+results_naive, horizon_metrics_naive, product_metrics_naive, overall_mape_naive = fixed_train_test_forecast(
+    df, 
+    datetime(2023, 1, 1),           # train_start_date
+    datetime(2024, 12, 31),         # train_end_date
+    datetime(2025, 1, 1),           # test_start_date
+    datetime(2025, 12, 31),         # test_end_date
+    "productid",                    # group_col
+    "date",                         # date_col
+    "sales_units",                  # target_col
+    naive_forecast,                 # forecast_fn
+    horizon=12                      # keyword arg
+)
+
+results_seasonal, horizon_metrics_seasonal, product_metrics_seasonal, overall_mape_seasonal = fixed_train_test_forecast(
+    df,
+    datetime(2023, 1, 1),
+    datetime(2024, 12, 31),
+    datetime(2025, 1, 1),
+    datetime(2025, 12, 31),
+    "productid",
+    "date",
+    "sales_units",
+    seasonal_naive_forecast,
+    horizon=12,
+    period=12  # passed via **forecast_kwargs
+)
+
+results_moving_average, horizon_metrics_moving_average, product_metrics_moving_average, overall_mape_moving_average = fixed_train_test_forecast(
+    df,
+    datetime(2023, 1, 1),
+    datetime(2024, 12, 31),
+    datetime(2025, 1, 1),
+    datetime(2025, 12, 31),
+    "productid",
+    "date",
+    "sales_units",
+    moving_average_forecast,
+    horizon=12,
+    window=3  # passed via **forecast_kwargs
+)
+
+# Run a 2024 validation; if 2024 validation is similar to 2025, the model is likely robust
+results_naive_internal_val, horizon_metrics_naive_internal_val, product_metrics_naive_internal_val, overall_mape_naive_internal_val = fixed_train_test_forecast(
+    df,
+    datetime(2023, 1, 1),
+    datetime(2023, 12, 31),
+    datetime(2024, 1, 1),
+    datetime(2024, 12, 31),
+    "productid",
+    "date",
+    "sales_units",
+    naive_forecast,
+    horizon=12
+)
+
 
 # -------------Save Outputs--------------
 
