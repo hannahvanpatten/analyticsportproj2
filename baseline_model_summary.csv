@@ -1,0 +1,5 @@
+Model,Overall_MAPE
+Naive,743333365.7256904
+Seasonal Naive,620000030.8580222
+Moving Average,474444472.0318282
+Naive (2024 Validation),523333367.55923116
