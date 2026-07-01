@@ -160,5 +160,36 @@ results_naive_internal_val, horizon_metrics_naive_internal_val, product_metrics_
 
 
 # -------------Save Outputs--------------
+results_naive.to_csv("baseline_naive_predictions.csv", index=False)
+results_seasonal.to_csv("baseline_seasonal_predictions.csv", index=False)
+results_moving_average.to_csv("baseline_moving_average_predictions.csv", index=False)
+results_naive_internal_val.to_csv("baseline_naive_internal_validation_predictions.csv", index=False)
+
+product_metrics_naive.to_csv("baseline_naive_product_mape.csv", index=False)
+product_metrics_seasonal.to_csv("baseline_seasonal_product_mape.csv", index=False)
+product_metrics_moving_average.to_csv("baseline_moving_average_product_mape.csv", index=False)
+product_metrics_naive_internal_val.to_csv("baseline_naive_internal_validation_product_mape.csv", index=False)
+
+horizon_metrics_naive.to_csv("baseline_naive_horizon_mape.csv", index=False)
+horizon_metrics_seasonal.to_csv("baseline_seasonal_horizon_mape.csv", index=False)
+horizon_metrics_moving_average.to_csv("baseline_moving_average_horizon_mape.csv", index=False)
+horizon_metrics_naive_internal_val.to_csv("baseline_naive_internal_validation_horizon_mape.csv", index=False)
+
+overall_summary = pd.DataFrame({
+    "Model": [
+        "Naive",
+        "Seasonal Naive",
+        "Moving Average",
+        "Naive (2024 Validation)"
+    ],
+    "Overall_MAPE": [
+        overall_mape_naive,
+        overall_mape_seasonal,
+        overall_mape_moving_average,
+        overall_mape_naive_internal_val
+    ]
+})
+overall_summary.to_csv("baseline_model_summary.csv", index=False)
+
 
 # ---------------Results-----------------
