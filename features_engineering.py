@@ -60,3 +60,16 @@ def add_lag_roll_features(
         g[group_col] = prod # Assigns the current product ID to all rows, including any rows created for missing months
     
     
+    # Lags for sales
+
+        for l in lag_list: # Loops through each specified sales lag period
+
+            g[f'sales_lag_{l}'] = g[target_col].shift(l) # Creates a sales feature containing sales values from the specified number of months earlier
+
+    # Rolling means and std for sales (use min_periods=1 so early windows produce values)
+
+        for w in roll_windows: # Loops through each specified rolling window size
+
+            g[f'sales_roll_mean_{w}'] = g[target_col].shift(1).rolling(window=w, min_periods=1).mean() # Calculates the average sales from the previous specified number of months without including the current month
+
+            g[f'sales_roll_std_{w}'] = g[target_col].shift(1).rolling(window=w, min_periods=1).std().fillna(0.0) # Calculates the standard deviation of previous sales within the specified window and replaces missing values with zero
