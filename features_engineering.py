@@ -167,3 +167,13 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
 
     out_df = out_df.sort_values(['productid', 'date']).reset_index(drop=True) # Sorts the output by product and date and resets the row index
 
+    # Save to CSV 
+
+    out_df.to_csv(output_path, index=False) 
+
+    print(f"Saved engineered features to: {output_path}") 
+
+    return out_df # Returns the final feature-engineered DataFrame 
+
+ 
+ 
