@@ -150,3 +150,16 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
             'month', 'month_sin', 'month_cos'
 
         )] # Uses a list comprehension to identify engineered feature columns
+
+    keep_cols = [c for c in original_cols if c in df.columns] + engineered_cols # Combines available original columns with all identified engineered feature columns
+
+    # also ensure group/index columns are present
+
+    if 'productid' not in keep_cols and 'productid' in df.columns: # Checks whether product ID exists in the DataFrame but is missing from the columns selected for output
+
+        keep_cols.insert(0, 'productid') # Adds product ID to the beginning of the selected column list
+
+    if 'date' not in keep_cols and 'date' in df.columns: # Checks whether date exists in the DataFrame but is missing from the columns selected for output
+
+        keep_cols.insert(1, 'date') # Adds date as the second column in the selected column list
+
