@@ -163,3 +163,7 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
 
         keep_cols.insert(1, 'date') # Adds date as the second column in the selected column list
 
+    out_df = df[keep_cols].copy() # Creates a new DataFrame containing only the selected original and engineered feature columns
+
+    out_df = out_df.sort_values(['productid', 'date']).reset_index(drop=True) # Sorts the output by product and date and resets the row index
+
