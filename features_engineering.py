@@ -176,4 +176,22 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
     return out_df # Returns the final feature-engineered DataFrame 
 
  
+ def main(): # Defines the main function that runs the complete feature engineering process 
+
+    print("Loading:", INPUT_CSV) # Prints the name of the input CSV file being loaded 
+
+    df = pd.read_csv(INPUT_CSV, parse_dates=['date']) # Loads the input CSV into a DataFrame and parses the date column as datetime values 
+
+    print("Initial rows:", len(df)) # Prints the number of rows in the input DataFrame 
+
  
+
+    df = add_time_features(df) # Adds calendar-based time features to the input DataFrame 
+
+    df_feats = add_lag_roll_features(df) # Adds lag, rolling, price, inventory, and product features to the DataFrame 
+
+    out_df = select_and_save(df_feats, OUTPUT_CSV) # Selects the final columns and saves the feature-engineered dataset to the output CSV file 
+
+    print("Feature engineering complete. Rows in output:", len(out_df)) # Prints a completion message and the number of rows in the final output dataset 
+
+
