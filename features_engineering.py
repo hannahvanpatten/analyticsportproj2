@@ -80,3 +80,20 @@ def add_lag_roll_features(
         g['price_pln_per_unit_pct_change'] = (g[price_col] - g['price_lag_1']) / g['price_lag_1'].replace(0, np.nan) # Calculates the percentage change in price from the previous month and replaces zero previous prices with missing values to prevent division by zero 
 
         g['price_pln_per_unit_pct_change'] = g['price_pln_per_unit_pct_change'].fillna(0.0) # Replaces missing price percentage change values with zero
+
+    # Inventory / demand ratios 
+
+        g['average_monthly_demand_safe'] = g['average_monthly_demand'].replace(0, np.nan).fillna(1.0) # Replaces zero average monthly demand values with one to prevent division by zero in later calculations 
+
+        g['inventory_to_avg_monthly_demand'] = g['inventory_level'] / g['average_monthly_demand_safe'] # Calculates the ratio of current inventory to average monthly demand 
+
+        g['excess_inventory'] = g.get('excess_inventory', np.nan) # Retrieves the existing excess inventory column or creates missing values if the column does not exist 
+
+        g['excess_inventory_pct_of_avg_demand'] = g['excess_inventory'] / g['average_monthly_demand_safe'] # Calculates excess inventory as a proportion of average monthly demand
+
+     # lead time / safety stock 
+
+        if 'lead_time_demand' not in g.columns: # Checks whether the lead time demand column is missing from the DataFrame 
+
+            g['lead_time_demand'] = g['average_monthly_demand_safe'] * g.get('lead_time_months', 0) # Calculates expected demand during the product's lead time if the feature does not already exist     
+    
