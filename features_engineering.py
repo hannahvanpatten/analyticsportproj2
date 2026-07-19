@@ -195,3 +195,6 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
     print("Feature engineering complete. Rows in output:", len(out_df)) # Prints a completion message and the number of rows in the final output dataset 
 
 
+if __name__ == "__main__": # Checks whether the script is being run directly rather than imported as a module 
+
+    main() # Runs the main function when the script is executed directly
