@@ -97,3 +97,8 @@ def add_lag_roll_features(
 
             g['lead_time_demand'] = g['average_monthly_demand_safe'] * g.get('lead_time_months', 0) # Calculates expected demand during the product's lead time if the feature does not already exist     
     
+    # flag for short shelf life: shelf_life_months <= 6 (example threshold) 
+
+        g['short_shelf_life_flag'] = (g['shelf_life_months'] <= 6).astype(int) # Assigns 1 to products with a shelf life of six months or less and 0 to products with a longer shelf life
+    
+        
