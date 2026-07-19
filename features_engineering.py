@@ -58,8 +58,7 @@ def add_lag_roll_features(
         g = g.set_index(date_col).asfreq('MS')  # enforces monthly index; will create NaNs if months missing
 
         g[group_col] = prod # Assigns the current product ID to all rows, including any rows created for missing months
-    
-    
+     
     # Lags for sales
 
         for l in lag_list: # Loops through each specified sales lag period
@@ -73,3 +72,11 @@ def add_lag_roll_features(
             g[f'sales_roll_mean_{w}'] = g[target_col].shift(1).rolling(window=w, min_periods=1).mean() # Calculates the average sales from the previous specified number of months without including the current month
 
             g[f'sales_roll_std_{w}'] = g[target_col].shift(1).rolling(window=w, min_periods=1).std().fillna(0.0) # Calculates the standard deviation of previous sales within the specified window and replaces missing values with zero
+
+    # Price features 
+
+        g['price_lag_1'] = g[price_col].shift(1) # Creates a feature containing the product's price from the previous month 
+
+        g['price_pln_per_unit_pct_change'] = (g[price_col] - g['price_lag_1']) / g['price_lag_1'].replace(0, np.nan) # Calculates the percentage change in price from the previous month and replaces zero previous prices with missing values to prevent division by zero 
+
+        g['price_pln_per_unit_pct_change'] = g['price_pln_per_unit_pct_change'].fillna(0.0) # Replaces missing price percentage change values with zero
