@@ -129,3 +129,24 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
 
     ] # Creates a list of original dataset columns to retain in the final output
 
+    engineered_cols = [c for c in df.columns if c.startswith('sales_lag_') or
+
+        c.startswith('sales_roll_') or
+
+        c in (
+
+            'price_lag_1',
+
+            'price_pln_per_unit_pct_change',
+
+            'inventory_to_avg_monthly_demand',
+
+            'excess_inventory_pct_of_avg_demand',
+
+            'average_monthly_demand_safe',
+
+            'short_shelf_life_flag',
+
+            'month', 'month_sin', 'month_cos'
+
+        )] # Uses a list comprehension to identify engineered feature columns
