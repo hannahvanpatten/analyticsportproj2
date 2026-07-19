@@ -100,5 +100,12 @@ def add_lag_roll_features(
     # flag for short shelf life: shelf_life_months <= 6 (example threshold) 
 
         g['short_shelf_life_flag'] = (g['shelf_life_months'] <= 6).astype(int) # Assigns 1 to products with a shelf life of six months or less and 0 to products with a longer shelf life
-    
+
         
+        feats.append(g.reset_index()) # Resets the date index and adds the current product's feature-engineered DataFrame to the results list 
+
+    df_feats = pd.concat(feats, ignore_index=True, sort=False) # Combines the feature-engineered DataFrames for all products into a single DataFrame 
+
+    return df_feats
+
+
