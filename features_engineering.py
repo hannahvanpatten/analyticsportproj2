@@ -81,6 +81,20 @@ def add_lag_roll_features(
 
         g['price_pln_per_unit_pct_change'] = g['price_pln_per_unit_pct_change'].fillna(0.0) # Replaces missing price percentage change values with zero
 
+    # Inventory lag features (for stateful models)
+        g['inventory_lag_1'] = g['inventory_level'].shift(1)  # Previous month's inventory level
+        g['inventory_lag_3'] = g['inventory_level'].shift(3)  # Inventory from 3 months ago
+        
+    # Trend/momentum features (month-over-month growth)
+        g['sales_mom_1'] = (g[target_col] - g[target_col].shift(1)) / g[target_col].shift(1).replace(0, np.nan)  # Month-over-month sales growth rate
+        g['sales_mom_1'] = g['sales_mom_1'].fillna(0.0)  # Replace NaN (from division by zero) with 0
+        
+        g['inventory_mom_1'] = (g['inventory_level'] - g['inventory_level'].shift(1)) / g['inventory_level'].shift(1).replace(0, np.nan)  # Month-over-month inventory change
+        g['inventory_mom_1'] = g['inventory_mom_1'].fillna(0.0)  # Replace NaN with 0
+        
+        g['sales_yoy_growth'] = (g[target_col] - g[target_col].shift(12)) / g[target_col].shift(12).replace(0, np.nan)  # Year-over-year sales growth (12-month comparison)
+        g['sales_yoy_growth'] = g['sales_yoy_growth'].fillna(0.0)  # Replace NaN with 0
+
     # Inventory / demand ratios
 
         g['average_monthly_demand_safe'] = g['average_monthly_demand'].replace(0, np.nan).fillna(1.0) # Replaces zero average monthly demand values with one to prevent division by zero in later calculations
@@ -134,21 +148,18 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
         c.startswith('sales_roll_') or
 
         c in (
-
             'price_lag_1',
-
             'price_pln_per_unit_pct_change',
-
+            'inventory_lag_1',
+            'inventory_lag_3',
+            'sales_mom_1',
+            'inventory_mom_1',
+            'sales_yoy_growth',
             'inventory_to_avg_monthly_demand',
-
             'excess_inventory_pct_of_avg_demand',
-
             'average_monthly_demand_safe',
-
             'short_shelf_life_flag',
-
             'month', 'month_sin', 'month_cos'
-
         )] # Uses a list comprehension to identify engineered feature columns
 
     keep_cols = [c for c in original_cols if c in df.columns] + engineered_cols # Combines available original columns with all identified engineered feature columns
