@@ -12,6 +12,12 @@ def add_derived_metrics(df: pd.DataFrame) -> pd.DataFrame: # UPDATE COLUMN NAMES
 
   # Extract year from year_month column (format: YYYYMM)
   df['year'] = df['year_month'].astype(str).str[:4]
+  
+  # Convert year_month to numeric for sorting and lookback calculation
+  df['year_month_numeric'] = df['year_month'].astype(int)
+  
+  # Sort by productid and year_month to enable proper lookback
+  df = df.sort_values(['productid', 'year_month_numeric']).reset_index(drop=True)
 
   # Multiply two columns (monthly revenue)
   if 'sales_units' in df.columns and 'price_pln_per_unit' in df.columns:
@@ -21,18 +27,13 @@ def add_derived_metrics(df: pd.DataFrame) -> pd.DataFrame: # UPDATE COLUMN NAMES
   if 'inventory_level' in df.columns and 'storage_cost_pln_per_unit_month' in df.columns:
     df['inventory_carrying_cost'] = ((df['inventory_level'] * df['storage_cost_pln_per_unit_month']).round(2))
 
-  # Calculate annual_sales: sum of sales_units grouped by productid and year
-  if 'sales_units' in df.columns and 'productid' in df.columns and 'year' in df.columns:
-    annual_sales_map = df.groupby(['productid', 'year'])['sales_units'].sum().reset_index() # Create a new dataframe containing the calculated sums
-    annual_sales_map.rename(columns={'sales_units': 'annual_sales'}, inplace=True) # Rename the column in the new dataframe
-    df = df.merge(annual_sales_map, on=['productid', 'year'], how='left') # Merge the new dataframe with the original dataframe
+  # Calculate annual_sales: sum of sales_units from 12 months prior (no future leakage)
+  if 'sales_units' in df.columns and 'productid' in df.columns:
+    df['annual_sales'] = df.groupby('productid')['sales_units'].rolling(window=12, min_periods=12).sum().reset_index(level=0, drop=True).round(0)
 
-  # Calculate average monthly inventory
-  if 'inventory_level' in df.columns and 'productid' in df.columns and 'year' in df.columns:
-    monthly_inventory_map = df.groupby(['productid', 'year'])['inventory_level'].sum().reset_index() # Create a new dataframe containing the sum of inventory_level grouped by productid and year
-    monthly_inventory_map['inventory_level'] = (monthly_inventory_map['inventory_level'] / 12).round(0) # Divide those sums by 12 to get the monthly average
-    monthly_inventory_map.rename(columns={'inventory_level': 'average_inventory'}, inplace=True) # Rename the column in the new dataframe
-    df = df.merge(monthly_inventory_map, on=['productid', 'year'], how='left') # Merge the new dataframe with the original dataframe
+  # Calculate average monthly inventory from 12 months prior (no future leakage)
+  if 'inventory_level' in df.columns and 'productid' in df.columns:
+    df['average_inventory'] = (df.groupby('productid')['inventory_level'].rolling(window=12, min_periods=12).sum().reset_index(level=0, drop=True) / 12).round(0)
 
   # Calculate average monthly demand
   if 'annual_sales' in df.columns:
