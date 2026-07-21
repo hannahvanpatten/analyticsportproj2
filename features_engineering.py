@@ -173,10 +173,10 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
 
     print(f"Saved engineered features to: {output_path}") 
 
-    return out_df # Returns the final feature-engineered DataFrame 
+    return out_df # Returns the final feature-engineered DataFrame
 
- 
- def main(): # Defines the main function that runs the complete feature engineering process 
+
+def main(): # Defines the main function that runs the complete feature engineering process 
 
     print("Loading:", INPUT_CSV) # Prints the name of the input CSV file being loaded 
 
