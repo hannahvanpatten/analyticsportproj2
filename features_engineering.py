@@ -167,34 +167,42 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
 
     out_df = out_df.sort_values(['productid', 'date']).reset_index(drop=True) # Sorts the output by product and date and resets the row index
 
-    # Save to CSV 
+    # Save to CSV
 
-    out_df.to_csv(output_path, index=False) 
+    out_df.to_csv(output_path, index=False)
 
-    print(f"Saved engineered features to: {output_path}") 
+    print(f"Saved engineered features to: {output_path}")
 
     return out_df # Returns the final feature-engineered DataFrame
 
 
-def main(): # Defines the main function that runs the complete feature engineering process 
+def main(): # Defines the main function that runs the complete feature engineering process
 
-    print("Loading:", INPUT_CSV) # Prints the name of the input CSV file being loaded 
+    print("Loading:", INPUT_CSV) # Prints the name of the input CSV file being loaded
 
-    df = pd.read_csv(INPUT_CSV, parse_dates=['date']) # Loads the input CSV into a DataFrame and parses the date column as datetime values 
+    df = pd.read_csv(INPUT_CSV, parse_dates=['date']) # Loads the input CSV into a DataFrame and parses the date column as datetime values
 
-    print("Initial rows:", len(df)) # Prints the number of rows in the input DataFrame 
+    print("Initial rows:", len(df)) # Prints the number of rows in the input DataFrame
 
  
 
-    df = add_time_features(df) # Adds calendar-based time features to the input DataFrame 
+    df = add_time_features(df) # Adds calendar-based time features to the input DataFrame
 
-    df_feats = add_lag_roll_features(df) # Adds lag, rolling, price, inventory, and product features to the DataFrame 
+    df_feats = add_lag_roll_features(df) # Adds lag, rolling, price, inventory, and product features to the DataFrame
 
-    out_df = select_and_save(df_feats, OUTPUT_CSV) # Selects the final columns and saves the feature-engineered dataset to the output CSV file 
+    # Drop the first 11 months per product (incomplete rolling windows)
+    df = df.sort_values(['productid', 'year_month_numeric']).reset_index(drop=True)
+    df = df.groupby('productid').apply(lambda x: x.iloc[11:]).reset_index(drop=True)
 
-    print("Feature engineering complete. Rows in output:", len(out_df)) # Prints a completion message and the number of rows in the final output dataset 
+    # Verify: each product should now have 25 rows (36 - 11)
+    print(f"Rows per product after dropping incomplete windows: {df.groupby('productid').size()}")
+    # Expected: all products have 25 rows
+
+    out_df = select_and_save(df_feats, OUTPUT_CSV) # Selects the final columns and saves the feature-engineered dataset to the output CSV file
+
+    print("Feature engineering complete. Rows in output:", len(out_df)) # Prints a completion message and the number of rows in the final output dataset
 
 
-if __name__ == "__main__": # Checks whether the script is being run directly rather than imported as a module 
+if __name__ == "__main__": # Checks whether the script is being run directly rather than imported as a module
 
     main() # Runs the main function when the script is executed directly
