@@ -198,7 +198,7 @@ def main():
     # Drop the first 11 months per product (incomplete rolling windows)
     print("\nDropping first 11 months per product (incomplete rolling windows)...")
     df_feats = df_feats.sort_values(['productid', 'date']).reset_index(drop=True)
-    df_feats = df_feats.groupby('productid').apply(lambda x: x.iloc[11:]).reset_index(drop=True)
+    df_feats = df_feats.groupby('productid', group_keys=False).apply(lambda x: x.iloc[11:]).reset_index(drop=True)
     
     # Verify: each product should now have 25 rows (36 - 11)
     rows_per_product = df_feats.groupby('productid').size()
