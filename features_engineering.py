@@ -187,30 +187,25 @@ def select_and_save(df: pd.DataFrame, output_path: str = OUTPUT_CSV):
     return out_df # Returns the final feature-engineered DataFrame
 
 
-def main(): # Defines the main function that runs the complete feature engineering process
-
-    print("Loading:", INPUT_CSV) # Prints the name of the input CSV file being loaded
-
-    df = pd.read_csv(INPUT_CSV, parse_dates=['date']) # Loads the input CSV into a DataFrame and parses the date column as datetime values
-
-    print("Initial rows:", len(df)) # Prints the number of rows in the input DataFrame
-
- 
-
-    df = add_time_features(df) # Adds calendar-based time features to the input DataFrame
-
-    df_feats = add_lag_roll_features(df) # Adds lag, rolling, price, inventory, and product features to the DataFrame
-
+def main():
+    print("Loading:", INPUT_CSV)
+    df = pd.read_csv(INPUT_CSV, parse_dates=['date'])
+    print("Initial rows:", len(df))
+    
+    df = add_time_features(df)
+    df_feats = add_lag_roll_features(df)
+    
     # Drop the first 11 months per product (incomplete rolling windows)
-    df = df.sort_values(['productid', 'year_month_numeric']).reset_index(drop=True)
-    df = df.groupby('productid').apply(lambda x: x.iloc[11:]).reset_index(drop=True)
-
+    print("\nDropping first 11 months per product (incomplete rolling windows)...")
+    df_feats = df_feats.sort_values(['productid', 'date']).reset_index(drop=True)
+    df_feats = df_feats.groupby('productid').apply(lambda x: x.iloc[11:]).reset_index(drop=True)
+    
     # Verify: each product should now have 25 rows (36 - 11)
-    print(f"Rows per product after dropping incomplete windows: {df.groupby('productid').size()}")
-    # Expected: all products have 25 rows
-
-    out_df = select_and_save(df_feats, OUTPUT_CSV) # Selects the final columns and saves the feature-engineered dataset to the output CSV file
-
+    rows_per_product = df_feats.groupby('productid').size()
+    print(f"Rows per product after dropping incomplete windows:\n{rows_per_product}")
+    print(f"Expected: all products have 25 rows (36 months - 11 incomplete)")
+    
+    out_df = select_and_save(df_feats, OUTPUT_CSV)
     print("Feature engineering complete. Rows in output:", len(out_df)) # Prints a completion message and the number of rows in the final output dataset
 
 
