@@ -3,17 +3,24 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+# Read dataset
 df = pd.read_csv("dataset_with_derived_metrics.csv", parse_dates=["date"])
 
 
 # ---------Define Baseline Models--------
 def mape(y_true, y_pred, eps=1e-8):
-    # Avoid divide-by-zero; returns percentage (not fraction)
-    mask = ~np.isnan(y_true)
-    y_true = np.array(y_true)[mask]
-    y_pred = np.array(y_pred)[mask]
-    denom = np.where(np.abs(y_true) < eps, eps, np.abs(y_true))
-    return np.mean(np.abs((y_true - y_pred) / denom)) * 100.0
+    """
+    Zero-safe MAPE: exclude rows where actuals are zero or NaN from the mean.
+    Returns percentage (not fraction). If no valid rows, returns np.nan.
+    """
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    # mask out NaNs and zero (or near-zero) actuals
+    mask = (~np.isnan(y_true)) & (~np.isnan(y_pred)) & (np.abs(y_true) > eps)
+    if mask.sum() == 0:
+        return np.nan
+    return np.mean(np.abs((y_true[mask] - y_pred[mask]) / np.abs(y_true[mask]))) * 100.0
+
 
 def prepare_monthly_df(df, date_col="date", freq="MS"):
     df = df.copy()
@@ -21,7 +28,9 @@ def prepare_monthly_df(df, date_col="date", freq="MS"):
     # make sure index is start-of-month, and sorted
     df[date_col] = df[date_col].dt.to_period("M").dt.to_timestamp()
     return df.sort_values([ "productid", date_col ])
+
 df = prepare_monthly_df(df, date_col="date")
+
 
 def naive_forecast(df, group_col, date_col, target_col, horizon):
     # For each product, forecast horizon steps as the last observed value
@@ -39,6 +48,7 @@ def naive_forecast(df, group_col, date_col, target_col, horizon):
         }))
     return pd.concat(preds, ignore_index=True)
 
+
 def seasonal_naive_forecast(df, group_col, date_col, target_col, horizon, period=12):
     preds = []
     df = df.set_index(date_col)
@@ -55,6 +65,7 @@ def seasonal_naive_forecast(df, group_col, date_col, target_col, horizon, period
         preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': y_hat}))
     return pd.concat(preds, ignore_index=True)
 
+
 def moving_average_forecast(df, group_col, date_col, target_col, horizon, window=3): # 3-month average
     preds = []
     df = df.set_index(date_col)
@@ -65,6 +76,7 @@ def moving_average_forecast(df, group_col, date_col, target_col, horizon, window
         future_dates = pd.date_range(start=last_date + pd.offsets.MonthBegin(1), periods=horizon, freq='MS')
         preds.append(pd.DataFrame({group_col: product, date_col: future_dates, 'horizon': list(range(1, horizon+1)), 'predicted_sales': [last_window_mean]*horizon}))
     return pd.concat(preds, ignore_index=True)
+
 
 def fixed_train_test_forecast(df, train_start_date, train_end_date, test_start_date, test_end_date, group_col, date_col, target_col, forecast_fn, horizon=1, **forecast_kwargs):
     df = prepare_monthly_df(df, date_col)
@@ -93,12 +105,41 @@ def fixed_train_test_forecast(df, train_start_date, train_end_date, test_start_d
             })
     
     res_df = pd.DataFrame(results)
+
+    # Diagnostics: find rows where actual_sales are zero or near-zero (these drive MAPE issues)
+    eps = 1e-8
+    zero_mask = (res_df['actual_sales'].isnull()) | (res_df['actual_sales'].abs() <= eps)
+    zeros_df = res_df[zero_mask]
+    diag_filename = f"mape_diagnostics_{forecast_fn.__name__}.csv"
+    try:
+        zeros_df.to_csv(diag_filename, index=False)
+    except Exception:
+        # If write fails, ignore but continue — diagnostics are helpful but non-critical
+        pass
+
     # MAPE by forecast horizon
     horizon_metrics = (res_df.groupby('horizon').apply(lambda g: mape(g['actual_sales'], g['predicted_sales'])))
     # MAPE by product
     product_metrics = (res_df.groupby(group_col).apply(lambda g: mape(g['actual_sales'], g['predicted_sales'])))
     # Overall MAPE
     overall_mape = mape(res_df['actual_sales'],res_df['predicted_sales'])
+
+    # Save a compact diagnostics summary
+    try:
+        diag_summary = pd.DataFrame({
+            'horizon': zeros_df.groupby('horizon').size().index.astype(int).tolist() if not zeros_df.empty else [],
+            'zero_count_by_horizon': zeros_df.groupby('horizon').size().tolist() if not zeros_df.empty else []
+        })
+        if not diag_summary.empty:
+            diag_summary.to_csv(f"mape_diagnostics_summary_{forecast_fn.__name__}.csv", index=False)
+    except Exception:
+        pass
+
+    # Print diagnostics counts to stdout for quick inspection
+    print(f"[DIAG] {forecast_fn.__name__}: rows with actual==0 or NaN: {len(zeros_df)} (saved to {diag_filename})")
+    if len(zeros_df) > 0:
+        print(zeros_df.head(10))
+
     return res_df, horizon_metrics, product_metrics, overall_mape
 
 
