@@ -1,103 +1,114 @@
-# ----------------Imports----------------
+"""
+Safe, forecast-aware derived metrics generator.
+
+- All rolling / aggregate metrics are computed using only historical data by shifting measurements before aggregation:
+    feature_t = f( data_{<= t-1} )
+
+- Usage:
+    from derived_metrics import add_derived_metrics
+    df = pd.read_csv("final_dataset.csv", parse_dates=["date"]) 
+    df = add_derived_metrics(df)
+    df.to_csv("dataset_with_derived_metrics.csv", index=False)
+
+- The function is defensive: it requires 'productid', 'date', and 'sales_units' at minimum.
+"""
+
+from typing import Optional
 import pandas as pd
 import numpy as np
 
-old_file = "final_dataset.csv" # INSERT FILE NAME HERE
-dataset = pd.read_csv(old_file) # Read the dataset
-print(dataset.head()) # Print a preview of the original for comparability
-new_file = "dataset_with_derived_metrics.csv" # INSERT NEW FILE NAME HERE
+def add_derived_metrics(df: pd.DataFrame, date_col: str = "date", group_col: str = "productid") -> pd.DataFrame:
+    """
+    Add forecast-safe derived metrics to a monthly product-level DataFrame.
+    Requirements:
+      - df must contain: group_col, date_col, 'sales_units' and preferably 'inventory_level'
 
-# ---------Derived Metrics Function----------
-def add_derived_metrics(df: pd.DataFrame) -> pd.DataFrame: # UPDATE COLUMN NAMES/COMMENT OUT ANY METRICS YOU DON'T WISH TO CALCULATE/ADD YOUR OWN AS NEEDED
+    Key safety rule:
+      - For any rolling feature (mean, sum, etc.) we compute the rolling on a shifted series
+        so the value at time t only uses observations from t-1 and earlier.
 
-  # Extract year from year_month column (format: YYYYMM)
-  df['year'] = df['year_month'].astype(str).str[:4]
-  
-  # Convert year_month to numeric for sorting and lookback calculation
-  df['year_month_numeric'] = df['year_month'].astype(int)
-  
-  # Sort by productid and year_month to enable proper lookback
-  df = df.sort_values(['productid', 'year_month_numeric']).reset_index(drop=True)
+    Returns:
+      - A new DataFrame (copy) with derived columns appended.
+    """
+    df = df.copy()
+    # Basic checks
+    if group_col not in df.columns:
+        raise KeyError(f"Missing required column: {group_col}")
+    if date_col not in df.columns:
+        raise KeyError(f"Missing required column: {date_col}")
+    if "sales_units" not in df.columns:
+        raise KeyError("Missing required column: sales_units")
 
-  # Multiply two columns (monthly revenue)
-  if 'sales_units' in df.columns and 'price_pln_per_unit' in df.columns:
-    df['monthly_revenue'] = ((df['sales_units'] * df['price_pln_per_unit']).round(2))
+    # Ensure date is datetime and sort
+    df[date_col] = pd.to_datetime(df[date_col])
+    df = df.sort_values([group_col, date_col]).reset_index(drop=True)
 
-  # Multiply two columns (inventory carrying cost)
-  if 'inventory_level' in df.columns and 'storage_cost_pln_per_unit_month' in df.columns:
-    df['inventory_carrying_cost'] = ((df['inventory_level'] * df['storage_cost_pln_per_unit_month']).round(2))
+    # We'll compute features groupwise and assign back
+    derived_list = []
+    for pid, g in df.groupby(group_col, sort=False):
+        g = g.sort_values(date_col).copy()
 
-  # Calculate annual_sales: sum of sales_units from 12 months prior (no future leakage)
-  if 'sales_units' in df.columns and 'productid' in df.columns:
-    df['annual_sales'] = df.groupby('productid')['sales_units'].rolling(window=12, min_periods=12).sum().reset_index(level=0, drop=True).round(0)
+        # Shift sales so any aggregations only look at past values
+        sales = g["sales_units"]
+        sales_lag1 = sales.shift(1)                 # sales at t-1
+        sales_lag12 = sales.shift(12)               # sales at t-12 (seasonal lag)
 
-  # Calculate average monthly inventory from 12 months prior (no future leakage)
-  if 'inventory_level' in df.columns and 'productid' in df.columns:
-    df['average_inventory'] = (df.groupby('productid')['inventory_level'].rolling(window=12, min_periods=12).sum().reset_index(level=0, drop=True) / 12).round(0)
+        # Rolling features computed on shifted sales (so window ending at t-1)
+        sales_roll_3 = sales_lag1.rolling(window=3, min_periods=1).mean()
+        sales_roll_6 = sales_lag1.rolling(window=6, min_periods=1).mean()
+        sales_roll_12 = sales_lag1.rolling(window=12, min_periods=3).mean()  # require more history
+        sales_roll_sum_12 = sales_lag1.rolling(window=12, min_periods=3).sum()
 
-  # Calculate average monthly demand
-  if 'annual_sales' in df.columns:
-    df['average_monthly_demand'] = (df['annual_sales'] / 12).round(0)
+        # Inventory-based features (if present); shift inventory before aggregating
+        if "inventory_level" in g.columns:
+            inv = g["inventory_level"]
+            inv_lag1 = inv.shift(1)
+            inv_roll_12_mean = inv_lag1.rolling(window=12, min_periods=3).mean()
+        else:
+            inv_lag1 = pd.Series(np.nan, index=g.index)
+            inv_roll_12_mean = pd.Series(np.nan, index=g.index)
 
-  # Calculate excess inventory
-  if 'inventory_level' in df.columns and 'sales_units' in df.columns:
-    df['excess_inventory'] = df['inventory_level'] - df['sales_units']
+        # Rate / ratio features
+        # annual_sales: 12-month historical sum (ending at t-1)
+        annual_sales = sales_roll_sum_12
 
-  # Calculate inventory turnover
-  if 'annual_sales' in df.columns and 'average_inventory' in df.columns:
-    df['inventory_turnover'] = df['annual_sales'] / df['average_inventory']
+        # simple demand volatility (std dev of last 12 months on shifted sales)
+        sales_roll_std_12 = sales_lag1.rolling(window=12, min_periods=3).std()
 
-  # Calculate lead time demand
-  if 'average_monthly_demand' in df.columns and 'lead_time_months' in df.columns:
-    df['lead_time_demand'] = df['average_monthly_demand'] * df['lead_time_months']
+        # month-over-month change (using lag1)
+        mom_change = (sales_lag1 - sales_lag12) / np.where(np.abs(sales_lag12) < 1e-8, np.nan, sales_lag12)
 
-  # Calculate reorder point
-  if 'lead_time_demand' in df.columns and 'safety_stock_months' in df.columns:
-    df['reorder_point'] = (df['lead_time_demand'] / df['safety_stock_months']).round(0)
+        # put derived features into the group's frame
+        g["_sales_lag_1"] = sales_lag1
+        g["_sales_lag_12"] = sales_lag12
+        g["_sales_roll_mean_3"] = sales_roll_3
+        g["_sales_roll_mean_6"] = sales_roll_6
+        g["_sales_roll_mean_12"] = sales_roll_12
+        g["_sales_roll_sum_12"] = sales_roll_sum_12
+        g["_sales_roll_std_12"] = sales_roll_std_12
+        g["_inventory_lag_1"] = inv_lag1
+        g["_inventory_roll_mean_12"] = inv_roll_12_mean
+        g["_annual_sales"] = annual_sales
+        g["_mom_change"] = mom_change
 
-  # Calculate expiration risk
-  if 'excess_inventory' in df.columns and 'price_pln_per_unit' in df.columns:
-    df['expiration_risk'] = (df['excess_inventory'] * df['price_pln_per_unit'])
+        derived_list.append(g)
 
-  # Calculate percentage change between two columns
-  #if 'forecast_value' in df.columns and 'actual_value' in df.columns:
-      # df['forecast_error_pct'] = (
-          # (df['actual_value'] - df['forecast_value']) / df['forecast_value'] * 100
-      # ).round(2)
-    
-  # Calculate absolute error
-  # if 'forecast_value' in df.columns and 'actual_value' in df.columns:
-    # df['absolute_error'] = abs(df['actual_value'] - df['forecast_value'])
-    
-  # Calculate rolling average
-  # if 'sales_value' in df.columns:
-    # df['sales_7day_avg'] = df['sales_value'].rolling(window=7, min_periods=1).mean().round(2)
-    
-  # Conditional metric (flag/category)
-  # if 'absolute_error' in df.columns:
-    # df['error_category'] = pd.cut(
-      # df['absolute_error'],
-      # bins=[0, 10, 50, np.inf],
-      # labels=['low', 'medium', 'high']
-    # )
-    
-  # Aggregate metric (sum/count by group)
-  # if 'product_id' in df.columns and 'quantity' in df.columns:
-    # df['product_total_qty'] = df.groupby('product_id')['quantity'].transform('sum')
-    
-  # Date-based metrics (if you have date columns)
-  # if 'date' in df.columns:
-    # df['date'] = pd.to_datetime(df['date'])
-    # df['month'] = df['date'].dt.month
-    # df['quarter'] = df['date'].dt.quarter
-     # df['year'] = df['date'].dt.year
-    
-  print("Derived Metrics Added")
-  print("---------------------")
-  print(f"New columns: {[col for col in df.columns if col not in df.columns[:-11]]}") # REPLACE INDEX DIGIT WITH NUMBER OF COLUMNS ADDED
-  print(df.head(20))
-  print("")
-  return df
+    df_out = pd.concat(derived_list, axis=0).sort_index()
+    # Optionally fill NaNs for newly created features with e.g., zeros or leave as NaN for modeling decisions.
+    # Do not fill here automatically; leave NaN so modeler chooses imputation approach.
+    return df_out
 
-dataset = add_derived_metrics(dataset)
-dataset = dataset.to_csv(new_file, index=False)
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Compute forecast-safe derived metrics for final_dataset.csv")
+    parser.add_argument("--input", "-i", default="final_dataset.csv", help="Input CSV with columns productid,date,sales_units")
+    parser.add_argument("--output", "-o", default="dataset_with_derived_metrics.csv", help="Output CSV path")
+    args = parser.parse_args()
+
+    print(f"Reading {args.input} ...")
+    df_in = pd.read_csv(args.input, parse_dates=["date"]) 
+    print("Computing features (this may take a moment)...")
+    df_out = add_derived_metrics(df_in)
+    print(f"Writing {args.output} ...")
+    df_out.to_csv(args.output, index=False)
+    print("Done.")
