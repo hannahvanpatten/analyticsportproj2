@@ -11,7 +11,7 @@ A manufacturer of medicinal products serving the hospital healthcare market curr
 
 
 ## Dataset description
-financial_plan.csv contains the unit selling price for each product, the planned sales for 2023-2025, and the planned revenue for 2023-2025.
+financial_plan.csv contains the unit selling price for each product, the planned sales for 2023-2025, and the planned revenue for 2023-2025. Plan columns represent external covariates available at forecast time.
 
 products_parameters.csv contains the storage cost per unit, product expiration horizon, time required to replenish inventory, required inventory buffer, and selling price for each product.
 
