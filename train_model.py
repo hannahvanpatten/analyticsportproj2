@@ -80,12 +80,12 @@ def main(input_csv: str = "features_dataset.csv",
     target_col = 'sales_units'
 
     # Identify features: drop obvious non-features
-    drop_cols = {target_col, 'date', 'product_name', 'year_month'}
+    drop_cols = {target_col, 'date', 'year_month'}
     # keep productid as categorical if present
     cols = [c for c in df.columns if c not in drop_cols and c not in (None, '')]
 
     # If productid present treat as categorical
-    categorical_cols = [c for c in ['productid'] if c in cols]
+    categorical_cols = [c for c in ['product_name'] if c in cols]
     numeric_cols = [c for c in cols if c not in categorical_cols]
 
     print(f"Numeric features ({len(numeric_cols)}): {numeric_cols[:10]}{'...' if len(numeric_cols)>10 else ''}")
@@ -143,7 +143,7 @@ def main(input_csv: str = "features_dataset.csv",
     print(f"Test MAPE: {overall_mape:.2f}%")
 
     # Save predictions and simple diagnostics
-    preds_df = test_df[['productid', 'date']].copy().reset_index()
+    preds_df = test_df[['product_name', 'date']].copy().reset_index()
     preds_df['actual_sales'] = y_test.values
     preds_df['predicted_sales'] = y_pred
     preds_df['abs_error'] = np.abs(preds_df['actual_sales'] - preds_df['predicted_sales'])
