@@ -69,8 +69,8 @@ def main(input_csv: str = "features_dataset.csv",
     test_start_dt = pd.to_datetime(test_start)
 
     # Split
-    train_df = df[df['date'] <= train_end_dt].copy()
-    test_df = df[df['date'] >= test_start_dt].copy()
+    train_df = df[df['date'] <= train_end_dt].copy().reset_index()
+    test_df = df[df['date'] >= test_start_dt].copy().reset_index()
 
     print(f"Train rows: {len(train_df)}, Test rows: {len(test_df)}")
 
@@ -99,7 +99,7 @@ def main(input_csv: str = "features_dataset.csv",
 
     categorical_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='constant', fill_value='UNKNOWN')),
-        ('ohe', OneHotEncoder(handle_unknown='ignore', sparse=False))
+        ('ohe', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
 
     preprocessor = ColumnTransformer(
@@ -143,7 +143,7 @@ def main(input_csv: str = "features_dataset.csv",
     print(f"Test MAPE: {overall_mape:.2f}%")
 
     # Save predictions and simple diagnostics
-    preds_df = test_df[['productid', 'date']].copy()
+    preds_df = test_df[['productid', 'date']].copy().reset_index()
     preds_df['actual_sales'] = y_test.values
     preds_df['predicted_sales'] = y_pred
     preds_df['abs_error'] = np.abs(preds_df['actual_sales'] - preds_df['predicted_sales'])
