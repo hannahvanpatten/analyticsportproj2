@@ -56,7 +56,7 @@ def main(input_csv: str = "features_dataset.csv",
     print(f"Loading features: {input_csv}")
     if not os.path.exists(input_csv):
         raise SystemExit(f"Input file not found: {input_csv}")
-    df = pd.read_csv(input_csv, parse_dates=["date"], infer_datetime_format=True)
+    df = pd.read_csv(input_csv, parse_dates=["date"])
 
     # Ensure date column is datetime if present
     if 'date' in df.columns:
