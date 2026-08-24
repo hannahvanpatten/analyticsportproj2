@@ -93,7 +93,7 @@ def main(input_csv: str = "features_dataset.csv",
     ])
     categorical_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='constant', fill_value='UNKNOWN')),
-        ('ohe', OneHotEncoder(handle_unknown='ignore', sparse=False))
+        ('ohe', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
     preprocessor = ColumnTransformer(transformers=[
         ('num', numeric_transformer, numeric_cols),
