@@ -34,3 +34,45 @@ def calculate_mape_by_horizon(df):
     else:
         print("Warning: 'date' column not found. Skipping horizon-based MAPE.")
         return None
+
+def main():
+    # Define paths for baseline, LightGBM, and RandomForest predictions
+    baseline_pred_path = "baseline_seasonal_predictions.csv"  # Using seasonal baseline as example
+    lgbm_pred_path = "outputs/predictions.csv"
+    rf_pred_path = "outputs/predictions_rf.csv"
+
+
+    # Load predictions
+    print("Loading prediction files...")
+    try:
+        baseline_df = pd.read_csv(baseline_pred_path)
+        lgbm_df = pd.read_csv(lgbm_pred_path)
+        rf_df = pd.read_csv(rf_pred_path)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return
+
+    # Ensure ape_pct column exists; calculate if needed
+    for name, df in [("Baseline", baseline_df), ("LightGBM", lgbm_df), ("RandomForest", rf_df)]:
+        if 'ape_pct' not in df.columns:
+            print(f"Calculating ape_pct for {name}...")
+            df['ape_pct'] = np.where(
+                np.abs(df['actual_sales']) > 1e-8,
+                np.abs((df['actual_sales'] - df['predicted_sales']) / df['actual_sales']) * 100.0,
+                np.nan
+            )
+
+    # Calculate overall MAPE
+    print("\nCalculating overall MAPE...")
+    mape_summary = pd.DataFrame({
+        'model': ['Baseline', 'LightGBM', 'RandomForest'],
+        'overall_mape': [
+            calculate_overall_mape(baseline_df),
+            calculate_overall_mape(lgbm_df),
+            calculate_overall_mape(rf_df)
+        ]
+    })
+
+
+    print("\nOverall MAPE Summary:")
+    print(mape_summary)
