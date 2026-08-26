@@ -76,3 +76,44 @@ def main():
 
     print("\nOverall MAPE Summary:")
     print(mape_summary)
+
+    # Calculate MAPE by product
+    print("\nCalculating MAPE by product...")
+
+    baseline_by_product = calculate_mape_by_product(baseline_df)
+    baseline_by_product.columns = ['product_name', 'baseline_mape']
+
+    lgbm_by_product = calculate_mape_by_product(lgbm_df)
+    lgbm_by_product.columns = ['product_name', 'lgbm_mape']
+
+    rf_by_product = calculate_mape_by_product(rf_df)
+    rf_by_product.columns = ['product_name', 'rf_mape']
+
+    # Merge all three
+    mape_by_product = baseline_by_product.merge(lgbm_by_product, on='product_name', how='outer')
+    mape_by_product = mape_by_product.merge(rf_by_product, on='product_name', how='outer')
+
+    print("\nMAPE by Product (first 10 rows):")
+    print(mape_by_product.head(10))
+
+    # Calculate MAPE by horizon
+    print("\nCalculating MAPE by forecast horizon...")
+
+    baseline_by_horizon = calculate_mape_by_horizon(baseline_df.copy())
+    
+    if baseline_by_horizon is not None:
+        baseline_by_horizon.columns = ['horizon', 'baseline_mape']
+
+        lgbm_by_horizon = calculate_mape_by_horizon(lgbm_df.copy())
+        lgbm_by_horizon.columns = ['horizon', 'lgbm_mape']
+
+        rf_by_horizon = calculate_mape_by_horizon(rf_df.copy())
+        rf_by_horizon.columns = ['horizon', 'rf_mape']
+
+        mape_by_horizon = baseline_by_horizon.merge(lgbm_by_horizon, on='horizon', how='outer')
+        mape_by_horizon = mape_by_horizon.merge(rf_by_horizon, on='horizon', how='outer')
+
+        print("\nMAPE by Horizon (first 10 rows):")
+        print(mape_by_horizon.head(10))
+    else:
+        mape_by_horizon = None
