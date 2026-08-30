@@ -117,3 +117,23 @@ def main():
         print(mape_by_horizon.head(10))
     else:
         mape_by_horizon = None
+
+    # Ensure output directory exists
+    os.makedirs('outputs', exist_ok=True)
+
+    # Save to CSV
+    print("\nSaving MAPE metrics to CSV...")
+    mape_summary.to_csv('outputs/mape_summary.csv', index=False)
+    mape_by_product.to_csv('outputs/mape_by_product.csv', index=False)
+    if mape_by_horizon is not None:
+        mape_by_horizon.to_csv('outputs/mape_by_horizon.csv', index=False)
+     
+    print("✓ Saved: outputs/mape_summary.csv")
+    print("✓ Saved: outputs/mape_by_product.csv")
+
+    if mape_by_horizon is not None:
+        print("✓ Saved: outputs/mape_by_horizon.csv")
+
+  
+if __name__ == '__main__':
+    main()
