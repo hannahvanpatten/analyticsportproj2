@@ -163,7 +163,7 @@ results_seasonal, horizon_metrics_seasonal, product_metrics_seasonal, overall_ma
     datetime(2024, 12, 31),
     datetime(2025, 1, 1),
     datetime(2025, 12, 31),
-    "productid",
+    "product_name",
     "date",
     "sales_units",
     seasonal_naive_forecast,
