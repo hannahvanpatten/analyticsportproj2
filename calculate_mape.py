@@ -37,8 +37,7 @@ def calculate_mape_by_horizon(df):
 
 def main():
     # Define paths for baseline, LightGBM, and RandomForest predictions
-    baseline_pred_path = "baseline_seasonal_predictions.csv"  # Using seasonal baseline as example [CHANGE THE CODE THAT CREATED
-        #THIS OUTPUT SO THAT IT PULLS PRODUCT_NAME INSTEAD OF PRODUCTID]
+    baseline_pred_path = "baseline_seasonal_predictions.csv"  # Using seasonal baseline as example
     lgbm_pred_path = "outputs/predictions.csv"
     rf_pred_path = "outputs/predictions_rf.csv"
 
